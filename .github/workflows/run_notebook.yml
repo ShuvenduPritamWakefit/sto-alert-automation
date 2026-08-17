@@ -1,0 +1,35 @@
+name: STO Alert (every 4 hours)
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"   # every 4 hrs UTC -> 05:30, 09:30, 13:30, 17:30, 21:30, 01:30 IST
+    # - cron: "30 0,4,8,12,16,20 * * *"   # alternative: 06:00, 10:00, 14:00, 18:00, 22:00, 02:00 IST
+  workflow_dispatch:        # adds a manual "Run workflow" button for testing
+
+jobs:
+  run-notebook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the notebook
+        run: papermill daily_sto_alert_fetch.ipynb executed_run.ipynb -k python3 --log-output
+
+      - name: Save executed notebook (for debugging)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: executed-notebook-run-${{ github.run_number }}
+          path: executed_run.ipynb
+          retention-days: 7
