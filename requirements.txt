@@ -1,0 +1,11 @@
+pandas
+numpy
+snowflake-connector-python
+gspread
+gspread-dataframe
+matplotlib
+seaborn
+requests
+pytz
+papermill
+ipykernel
