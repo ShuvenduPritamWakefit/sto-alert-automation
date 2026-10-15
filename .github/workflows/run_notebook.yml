@@ -1,33 +1,55 @@
-name: STO Alert (every 4 hours)
+name: STO Alert (every 4 hours + 02:40 IST)
 
+# Cron is UTC. Odd minutes avoid GitHub's congested :00 slot (measured Aug-Oct 2026: the old "0 */4" fired a median
+# 86 min late, up to 4 h, and dropped ~40% of its slots). The night run reads the input sheet that is refreshed ~02:30 IST
+# and must be finished by 03:30; the morning STO / vehicle planning then reads these tabs, so NOTHING is written 03:20-07:00 IST.
 on:
   schedule:
-    - cron: "0 */4 * * *"   # every 4 hrs UTC -> 05:30, 09:30, 13:30, 17:30, 21:30, 01:30 IST
-    # - cron: "30 0,4,8,12,16,20 * * *"   # alternative: 06:00, 10:00, 14:00, 18:00, 22:00, 02:00 IST
-  workflow_dispatch:        # adds a manual "Run workflow" button for testing
+    - cron: "11,26,41 21 * * *"      # 02:41, 02:56, 03:11 IST - the run that must pick up the 02:30 input (all three fire)
+    - cron: "23 2,6,10,14,18 * * *"  # 07:53, 11:53, 15:53, 19:53, 23:53 IST
+  workflow_dispatch:                 # adds a manual "Run workflow" button for testing (the gate below still applies)
+
+concurrency:
+  group: sto-alert
+  cancel-in-progress: false          # a second run waits for the first, it never writes alongside it
 
 jobs:
   run-notebook:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Skip inside the planning window (03:20-07:00 IST)
+        id: gate
+        run: |
+          now=$(TZ=Asia/Kolkata date +%H%M)
+          if (( 10#$now >= 320 && 10#$now < 700 )); then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$now IST is inside the 03:20-07:00 no-write window, nothing written"
+          else
+            echo "::notice::$now IST, running"
+          fi
+
       - name: Checkout repo
+        if: steps.gate.outputs.skip != 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.gate.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
+        if: steps.gate.outputs.skip != 'true'
         run: pip install -r requirements.txt
 
       - name: Run the notebook
+        if: steps.gate.outputs.skip != 'true'
         run: papermill daily_sto_alert_fetch.ipynb executed_run.ipynb -k python3 --log-output
 
       - name: Save executed notebook (for debugging)
-        if: always()
+        if: always() && steps.gate.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: executed-notebook-run-${{ github.run_number }}
