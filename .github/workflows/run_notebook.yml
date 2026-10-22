@@ -1,12 +1,10 @@
-name: STO Alert (every 4 hours + 02:40 IST)
+name: STO Alert (daily 18:00 IST)
 
-# Cron is UTC. Odd minutes avoid GitHub's congested :00 slot (measured Aug-Oct 2026: the old "0 */4" fired a median
-# 86 min late, up to 4 h, and dropped ~40% of its slots). The night run reads the input sheet that is refreshed ~02:30 IST
-# and must be finished by 03:30; the morning STO / vehicle planning then reads these tabs, so NOTHING is written 03:20-07:00 IST.
+# Cron is UTC: 12:30 UTC = 18:00 IST. GitHub can start scheduled runs late, and occasionally drops them, on busy slots.
+# The 03:20-07:00 IST no-write gate is kept as a safety net for manual runs (the morning STO / vehicle planning reads these tabs).
 on:
   schedule:
-    - cron: "11,26,41 21 * * *"      # 02:41, 02:56, 03:11 IST - the run that must pick up the 02:30 input (all three fire)
-    - cron: "23 2,6,10,14,18 * * *"  # 07:53, 11:53, 15:53, 19:53, 23:53 IST
+    - cron: "30 12 * * *"            # 18:00 IST
   workflow_dispatch:                 # adds a manual "Run workflow" button for testing (the gate below still applies)
 
 concurrency:
