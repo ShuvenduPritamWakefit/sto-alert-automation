@@ -1,5 +1,5 @@
 name: STO Alert (every 4 hours + 02:40 IST)
-----
+
 # Cron is UTC. Odd minutes avoid GitHub's congested :00 slot (measured Aug-Oct 2026: the old "0 */4" fired a median
 # 86 min late, up to 4 h, and dropped ~40% of its slots). The night run reads the input sheet that is refreshed ~02:30 IST
 # and must be finished by 03:30; the morning STO / vehicle planning then reads these tabs, so NOTHING is written 03:20-07:00 IST.
